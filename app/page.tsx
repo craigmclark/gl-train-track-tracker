@@ -59,13 +59,22 @@ export default async function LivePage() {
           </p>
         )}
 
-        {/* Cache-busted per minute so the browser does not pin the first image
-            it ever saw at this stable path. */}
-        <img
-          className="frame"
-          src={`/api/frame?t=${Math.floor(Date.now() / 60000)}`}
-          alt="Most recent camera frame, looking west along IL 120"
-        />
+        {/* Only render once a frame exists — /api/frame 404s before the first
+            successful ingest, and a broken-image box is a worse empty state
+            than no image at all. Cache-busted per minute so the browser does
+            not pin the first image it ever saw at this stable path. */}
+        {latest ? (
+          <img
+            className="frame"
+            src={`/api/frame?t=${Math.floor(Date.now() / 60000)}`}
+            alt="Most recent camera frame, looking west along IL 120"
+          />
+        ) : (
+          <p className="note">
+            The camera image appears here once the poller stores its first
+            frame.
+          </p>
+        )}
       </div>
 
       <div className="notice">

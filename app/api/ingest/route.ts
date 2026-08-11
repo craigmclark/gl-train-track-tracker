@@ -77,8 +77,12 @@ async function ingest() {
   }
 
   await db.insert(pollTicks).values({ gotNewFrame: true });
-  await setFeedState(LAST_MODIFIED_KEY, toHttpDate(capturedAt));
 
+  // NB: Last-Modified is deliberately NOT stored yet. Storing it here would
+  // mean a failure further down (Blob outage, VLM error) still advances the
+  // cursor, so the next poll sends If-Modified-Since for a frame we never
+  // recorded and gets a 304 — silently burning that frame. It is written only
+  // after the observation row lands, which makes a failed ingest retryable.
   const daylight = isDaylight(capturedAt);
   const reference = await loadReference(daylight);
 
@@ -114,26 +118,36 @@ async function ingest() {
     }
   }
 
-  // Images are evidence for confirmed crossings only. Everything else is
-  // discarded here and never reaches storage.
+  // Image storage is best-effort. The observation is the data; the picture is
+  // supporting evidence, so a Blob outage (or a store that was never created)
+  // must not cost us the reading. Failures degrade to imageUrl = null.
   let imageUrl: string | null = null;
-  if (verdict?.trainPresent) {
-    const blob = await put(`trains/${capturedAt.toISOString()}.jpg`, buffer, {
+  let blobError: string | null = null;
+
+  try {
+    // Images are evidence for confirmed crossings only. Everything else is
+    // discarded here and never reaches storage.
+    if (verdict?.trainPresent) {
+      const blob = await put(`trains/${capturedAt.toISOString()}.jpg`, buffer, {
+        access: "public",
+        contentType: "image/jpeg",
+      });
+      imageUrl = blob.url;
+    }
+
+    // The live view always shows the current frame, train or not.
+    const latestBlob = await put(LATEST_BLOB_PATH, buffer, {
       access: "public",
       contentType: "image/jpeg",
+      allowOverwrite: true,
+      addRandomSuffix: false,
     });
-    imageUrl = blob.url;
+    // The blob host is only known at runtime, so record it for /api/frame.
+    await setFeedState(LATEST_BLOB_URL_KEY, latestBlob.url);
+  } catch (err) {
+    blobError = err instanceof Error ? err.message : "unknown blob error";
+    console.error("blob storage failed (observation still recorded):", err);
   }
-
-  // The live view always shows the current frame, train or not.
-  const latestBlob = await put(LATEST_BLOB_PATH, buffer, {
-    access: "public",
-    contentType: "image/jpeg",
-    allowOverwrite: true,
-    addRandomSuffix: false,
-  });
-  // The blob host is only known at runtime, so record the URL for /api/frame.
-  await setFeedState(LATEST_BLOB_URL_KEY, latestBlob.url);
 
   const [inserted] = await db
     .insert(observations)
@@ -155,6 +169,10 @@ async function ingest() {
     })
     .returning({ id: observations.id });
 
+  // Only now advance the cursor. Everything above can fail and be retried
+  // against the same frame; past this point the reading is durably recorded.
+  await setFeedState(LAST_MODIFIED_KEY, toHttpDate(capturedAt));
+
   await recomputeCurrentBlockage();
   const purged = await purgeExpiredImages();
 
@@ -169,6 +187,9 @@ async function ingest() {
     vlmReason: verdict !== null ? reason : null,
     trainPresent: verdict?.trainPresent ?? false,
     gates: verdict?.gates ?? "unknown",
+    confidence: verdict?.confidence ?? null,
+    imageStored: imageUrl !== null,
+    blobError,
     imagesPurged: purged,
   });
 }
