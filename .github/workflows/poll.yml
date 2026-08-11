@@ -1,0 +1,45 @@
+name: Poll crossing camera
+
+# Every 5 minutes is the GitHub Actions floor, and it comfortably outpaces the
+# camera's own 5-8 minute refresh. Scheduled runs on the free tier are routinely
+# delayed under load; the poll_ticks table records what interval we actually
+# achieved, and /stats displays it.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+# A delayed run must never pile up on top of a still-running one.
+concurrency:
+  group: poll-crossing
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger ingest
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::INGEST_URL and CRON_SECRET repository secrets must both be set."
+            exit 1
+          fi
+
+          status=$(curl -sS -o /tmp/body.json -w '%{http_code}' \
+            --max-time 90 --retry 2 --retry-delay 5 --retry-connrefused \
+            -X POST "$INGEST_URL" \
+            -H "x-cron-secret: $CRON_SECRET")
+
+          echo "HTTP $status"
+          cat /tmp/body.json
+          echo
+
+          # 2xx only. A 401 means the secret drifted; a 5xx means ingest threw.
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Ingest returned HTTP $status"
+            exit 1
+          fi

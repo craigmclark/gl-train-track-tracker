@@ -1,0 +1,372 @@
+/* ==========================================================================
+   GL TRAIN TRACK TRACKER
+   Railroad-signage palette: bone, signal red, amber, rail green, ink.
+   The entire page recolours from [data-status] on <html>, set in layout.tsx.
+   ========================================================================== */
+
+:root {
+  --ink: #14110f;
+  --bone: #f4ede0;
+  --signal: #d8291c;
+  --amber: #f5a623;
+  --rail: #17694a;
+
+  --bg: var(--bone);
+  --fg: var(--ink);
+  --accent: var(--rail);
+  --panel: #fffaf0;
+  --rule: var(--ink);
+  --stripe-a: var(--signal);
+  --stripe-b: var(--bone);
+
+  --border: 3px;
+  --shadow: 6px 6px 0 var(--ink);
+}
+
+/* --- crossing clear: bone + green ------------------------------------- */
+html[data-status="clear"] {
+  --bg: var(--bone);
+  --fg: var(--ink);
+  --accent: var(--rail);
+  --panel: #fffaf0;
+  --stripe-a: var(--rail);
+  --stripe-b: var(--bone);
+}
+
+/* --- train on the crossing: full alarm -------------------------------- */
+html[data-status="train"] {
+  --bg: var(--signal);
+  --fg: var(--bone);
+  --accent: var(--amber);
+  --panel: #b81f14;
+  --rule: var(--bone);
+  --shadow: 6px 6px 0 #6d0f08;
+  --stripe-a: var(--amber);
+  --stripe-b: var(--signal);
+}
+
+/* --- not classified this frame: amber caution ------------------------- */
+html[data-status="skipped"] {
+  --bg: #f2d9a0;
+  --fg: var(--ink);
+  --accent: #a35c00;
+  --panel: #fdf0d2;
+  --stripe-a: var(--amber);
+  --stripe-b: #fdf0d2;
+}
+
+/* --- no signal: lights out -------------------------------------------- */
+html[data-status="nodata"] {
+  --bg: #14110f;
+  --fg: #e8e2d6;
+  --accent: var(--amber);
+  --panel: #211d19;
+  --rule: #e8e2d6;
+  --shadow: 6px 6px 0 #000;
+  --stripe-a: #4a423a;
+  --stripe-b: #14110f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  transition: background-color 0.7s ease;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  transition: color 0.7s ease;
+}
+
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* --- gate-arm hazard stripes ------------------------------------------ */
+.gatearm {
+  height: 18px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--stripe-a) 0 16px,
+    var(--stripe-b) 16px 32px
+  );
+  border-top: var(--border) solid var(--rule);
+  border-bottom: var(--border) solid var(--rule);
+}
+.gatearm:first-child {
+  border-top: none;
+}
+
+/* --- header ------------------------------------------------------------ */
+.site-header {
+  border-bottom: var(--border) solid var(--rule);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: var(--fg);
+}
+.crossbuck {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  color: var(--accent);
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+.brand-line {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(20px, 4.4vw, 30px);
+  line-height: 0.88;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+nav {
+  display: flex;
+  gap: 10px;
+}
+nav a {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  color: var(--fg);
+  border: var(--border) solid var(--rule);
+  padding: 6px 12px;
+  background: var(--panel);
+  transition: transform 0.08s ease;
+}
+nav a:hover {
+  background: var(--accent);
+  color: var(--bg);
+  transform: translate(-2px, -2px);
+}
+
+/* --- status hero ------------------------------------------------------- */
+.status-card {
+  border: var(--border) solid var(--rule);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 26px;
+  margin: 30px 0 24px;
+}
+html[data-status="train"] .status-card {
+  animation: alarm 1.6s ease-in-out infinite;
+}
+@keyframes alarm {
+  0%,
+  100% {
+    box-shadow: 6px 6px 0 #6d0f08;
+  }
+  50% {
+    box-shadow: 6px 6px 0 var(--amber);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-status="train"] .status-card {
+    animation: none;
+  }
+  html {
+    transition: none;
+  }
+}
+
+.verdict {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(32px, 8vw, 68px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.asof {
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin: 12px 0 0;
+}
+.note {
+  font-size: 13px;
+  margin: 12px 0 0;
+  opacity: 0.85;
+}
+.frame {
+  margin-top: 20px;
+  border: var(--border) solid var(--rule);
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --- notices ----------------------------------------------------------- */
+.notice {
+  border: var(--border) solid var(--rule);
+  background: var(--panel);
+  padding: 14px 16px;
+  font-size: 13px;
+  margin-bottom: 22px;
+}
+.notice.warn {
+  background: var(--amber);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.notice strong {
+  font-weight: 700;
+}
+
+/* --- headings ---------------------------------------------------------- */
+h2 {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(20px, 3.6vw, 30px);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin: 38px 0 14px;
+  padding-bottom: 8px;
+  border-bottom: var(--border) solid var(--rule);
+}
+
+/* --- tables ------------------------------------------------------------ */
+.table-scroll {
+  overflow-x: auto;
+  border: var(--border) solid var(--rule);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+  min-width: 620px;
+}
+th,
+td {
+  text-align: left;
+  padding: 9px 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
+  white-space: nowrap;
+}
+th {
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  border-bottom: var(--border) solid var(--rule);
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+td.train {
+  font-weight: 700;
+  color: var(--signal);
+}
+html[data-status="train"] td.train,
+html[data-status="nodata"] td.train {
+  color: var(--amber);
+}
+td.dim {
+  opacity: 0.62;
+}
+
+/* --- metrics ----------------------------------------------------------- */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+.metric {
+  border: var(--border) solid var(--rule);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.metric .value {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.metric .label {
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  opacity: 0.72;
+}
+
+/* --- heatmap ----------------------------------------------------------- */
+.heatmap {
+  min-width: 700px;
+  border-collapse: separate;
+  border-spacing: 3px;
+}
+.heatmap td,
+.heatmap th {
+  border: none;
+  padding: 0;
+}
+.heatmap th {
+  font-size: 9.5px;
+  text-align: center;
+  padding-bottom: 5px;
+  border-bottom: none;
+}
+.heatmap th.row-label {
+  text-align: right;
+  padding-right: 9px;
+  width: 40px;
+  font-size: 10.5px;
+}
+.cell {
+  width: 25px;
+  height: 21px;
+  border: 1px solid color-mix(in srgb, var(--fg) 28%, transparent);
+}
+
+/* --- footer ------------------------------------------------------------ */
+.site-footer {
+  margin: 50px auto 34px;
+  padding-top: 18px;
+  border-top: var(--border) solid var(--rule);
+  font-size: 11.5px;
+  opacity: 0.78;
+}
+.site-footer p {
+  margin: 0 0 8px;
+}
+.site-footer strong {
+  letter-spacing: 0.1em;
+}
+
+a {
+  color: var(--accent);
+}
+code {
+  background: color-mix(in srgb, var(--fg) 12%, transparent);
+  padding: 1px 5px;
+  font-size: 0.92em;
+}
