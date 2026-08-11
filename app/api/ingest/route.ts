@@ -136,14 +136,27 @@ async function ingest() {
     }
 
     // The live view always shows the current frame, train or not.
+    //
+    // cacheControlMaxAge is essential here and easy to miss: Blob defaults to a
+    // one-month TTL, and overwriting a stable pathname does NOT purge the CDN.
+    // Without this the edge happily serves a frame from hours ago while the
+    // status text next to it reads live — which is exactly what happened.
     const latestBlob = await put(LATEST_BLOB_PATH, buffer, {
       access: "public",
       contentType: "image/jpeg",
       allowOverwrite: true,
       addRandomSuffix: false,
+      cacheControlMaxAge: 60,
     });
     // The blob host is only known at runtime, so record it for /api/frame.
-    await setFeedState(LATEST_BLOB_URL_KEY, latestBlob.url);
+    //
+    // The ?v= suffix carries the capture time. It is meaningless to Blob, but
+    // it gives every frame a distinct CDN cache key, so /api/frame can never be
+    // handed an edge copy of a previous frame no matter what TTL is in force.
+    await setFeedState(
+      LATEST_BLOB_URL_KEY,
+      `${latestBlob.url}?v=${capturedAt.getTime()}`,
+    );
   } catch (err) {
     blobError = err instanceof Error ? err.message : "unknown blob error";
     console.error("blob storage failed (observation still recorded):", err);

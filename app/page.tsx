@@ -94,7 +94,10 @@ export default async function LivePage() {
         {latest ? (
           <img
             className="frame"
-            src={`/api/frame?t=${Math.floor(Date.now() / 60000)}`}
+            // Keyed to the frame's own capture time rather than the clock, so
+            // the URL changes exactly when there is genuinely a new image and
+            // never in between.
+            src={`/api/frame?t=${latest.capturedAt.getTime()}`}
             alt="Most recent camera frame, looking west along IL 120"
           />
         ) : (
