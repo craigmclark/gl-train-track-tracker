@@ -1,19 +1,28 @@
-import { formatDurationRange } from "@/lib/blockage";
+import {
+  blockageTier,
+  formatDurationRange,
+  getOpenBlockage,
+  openBlockageMinutes,
+} from "@/lib/blockage";
 import { ROI_CALIBRATED } from "@/lib/config";
 import { getRecentBlockages } from "@/lib/db";
-import { fmtAgo, fmtDateTime, fmtInterval } from "@/lib/format";
+import { fmtAgo, fmtDateTime, fmtInterval, fmtTime } from "@/lib/format";
 import { getSiteStatus } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function LivePage() {
-  const [status, blockages] = await Promise.all([
+  const [status, blockages, open] = await Promise.all([
     getSiteStatus(),
     getRecentBlockages(10),
+    getOpenBlockage(),
   ]);
 
   const { latest, samplingIntervalS, stale } = status;
+
+  const elapsed = open ? openBlockageMinutes(open) : null;
+  const tier = elapsed ? blockageTier(elapsed.confirmed) : null;
 
   return (
     <>
@@ -35,6 +44,25 @@ export default async function LivePage() {
           </p>
         ) : (
           <p className="asof">Waiting for the first frame</p>
+        )}
+
+        {/* Elapsed time is a lower bound, never a stopwatch. We know the train
+            was there at the first and last frame; we have not seen anything
+            since, so "at least" is the only honest verb available. */}
+        {open && elapsed && tier && (
+          <div className={`elapsed tier-${tier.tier}`}>
+            <span className="elapsed-value">
+              Blocked at least {elapsed.confirmed} min
+            </span>
+            {tier.label && <span className="elapsed-tag">{tier.label}</span>}
+            <span className="elapsed-detail">
+              First seen {fmtTime(open.firstSeenAt)}, still blocked at{" "}
+              {fmtTime(open.lastSeenAt)} across {open.observationCount} frames.
+              {elapsed.possible > elapsed.confirmed && (
+                <> If it never left, it is up to {elapsed.possible} min by now.</>
+              )}
+            </span>
+          </div>
         )}
 
         {latest && !latest.vlmCalled && (

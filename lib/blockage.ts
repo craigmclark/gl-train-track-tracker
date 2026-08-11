@@ -4,7 +4,14 @@ import {
   ASSUMED_SAMPLING_INTERVAL_S,
   BLOCKAGE_MAX_GAP_MS,
 } from "./config";
-import { blockages, db, getMedianSamplingIntervalS, observations } from "./db";
+import {
+  blockages,
+  db,
+  getLatestObservation,
+  getMedianSamplingIntervalS,
+  observations,
+} from "./db";
+import type { Blockage } from "./schema";
 
 /**
  * Rebuild the blockage row covering the most recent observation.
@@ -85,6 +92,65 @@ export async function recomputeCurrentBlockage(): Promise<void> {
   } else {
     await db.insert(blockages).values(row);
   }
+}
+
+/**
+ * The blockage still in progress, if any.
+ *
+ * "In progress" means the most recent frame showed a train and that frame is
+ * the tail of a blockage run. There is no way to know the train is *still*
+ * there right now — only that it was at the last frame — which is why the
+ * caller must render this as a lower bound, never a live stopwatch.
+ */
+export async function getOpenBlockage(): Promise<Blockage | null> {
+  const latest = await getLatestObservation();
+  if (!latest?.trainPresent) return null;
+
+  const [open] = await db
+    .select()
+    .from(blockages)
+    .where(eq(blockages.lastObservationId, latest.id))
+    .limit(1);
+
+  return open ?? null;
+}
+
+export type BlockageTier = "brief" | "notable" | "long" | "extended";
+
+/**
+ * Severity banding for how long the crossing has been shut.
+ *
+ * Thresholds are about driver impact, not railroading: under 10 minutes is a
+ * normal train, 10-20 means something is moving slowly or stopped, and past 30
+ * you should genuinely go around.
+ */
+export function blockageTier(minutes: number): {
+  tier: BlockageTier;
+  label: string | null;
+} {
+  if (minutes >= 30) return { tier: "extended", label: "Extended blockage" };
+  if (minutes >= 20) return { tier: "long", label: "Long blockage" };
+  if (minutes >= 10) return { tier: "notable", label: "Slow or stopped" };
+  return { tier: "brief", label: null };
+}
+
+/**
+ * Bounds on how long an in-progress blockage has lasted, in minutes.
+ *
+ * `confirmed` is the span we actually witnessed (first frame to last frame).
+ * `possible` extends that to now, because the train may well still be sitting
+ * there — but we have not seen a frame since, so it is a ceiling, not a fact.
+ */
+export function openBlockageMinutes(b: Blockage): {
+  confirmed: number;
+  possible: number;
+} {
+  return {
+    confirmed: Math.round(
+      (b.lastSeenAt.getTime() - b.firstSeenAt.getTime()) / 60000,
+    ),
+    possible: Math.round((Date.now() - b.firstSeenAt.getTime()) / 60000),
+  };
 }
 
 /**

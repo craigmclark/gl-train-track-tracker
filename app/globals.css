@@ -214,6 +214,56 @@ html[data-status="train"] .status-card {
   margin: 12px 0 0;
   opacity: 0.85;
 }
+/* --- elapsed blockage callout ------------------------------------------
+   Only rendered while a train is on the crossing, so it is styled against the
+   signal-red alarm background rather than the neutral theme. */
+.elapsed {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: var(--border) solid var(--ink);
+  background: var(--amber);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.elapsed-value {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(22px, 5vw, 40px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.elapsed-tag {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--amber);
+  padding: 4px 10px;
+}
+.elapsed-detail {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+/* Past 20 minutes the crossing is worth driving around, so it stops looking
+   like a caution notice and starts looking like a warning. */
+.elapsed.tier-long,
+.elapsed.tier-extended {
+  background: var(--bone);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.elapsed.tier-long .elapsed-tag,
+.elapsed.tier-extended .elapsed-tag {
+  background: var(--signal);
+  color: var(--bone);
+}
+.elapsed.tier-extended .elapsed-value {
+  color: var(--signal);
+}
+
 .frame {
   margin-top: 20px;
   border: var(--border) solid var(--rule);

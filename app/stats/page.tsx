@@ -1,12 +1,14 @@
+import { blockageTier, formatDurationRange } from "@/lib/blockage";
 import { ASSUMED_SAMPLING_INTERVAL_S } from "@/lib/config";
 import {
   getBlockedShare,
   getCvAuditReport,
   getHourWeekdayHeatmap,
+  getLongestBlockages,
   getMedianSamplingIntervalS,
   getPollStats,
 } from "@/lib/db";
-import { fmtInterval } from "@/lib/format";
+import { fmtDateTime, fmtInterval } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,12 +20,13 @@ const METRA_GATE_DOWN_S = 45;
 const FREIGHT_GATE_DOWN_S = 150;
 
 export default async function StatsPage() {
-  const [interval, share, heat, audit, polls] = await Promise.all([
+  const [interval, share, heat, audit, polls, longest] = await Promise.all([
     getMedianSamplingIntervalS(),
     getBlockedShare(),
     getHourWeekdayHeatmap(),
     getCvAuditReport(),
     getPollStats(24),
+    getLongestBlockages(10),
   ]);
 
   const samplingS = interval ?? ASSUMED_SAMPLING_INTERVAL_S;
@@ -138,6 +141,52 @@ export default async function StatsPage() {
           </tbody>
         </table>
       </div>
+
+      <h2>Longest blockages recorded</h2>
+      <p className="note">
+        These are the events this camera <em>can</em> measure well. A normal
+        train is gone between frames, but a stopped or slow-moving one spans
+        several, so its length is directly observed rather than inferred. Each
+        figure is still a range: the low number is the span actually witnessed,
+        the high number adds one sampling interval at each end for the time
+        before the first frame and after the last.
+      </p>
+      {longest.length === 0 ? (
+        <p className="note">No blockages recorded yet.</p>
+      ) : (
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Started</th>
+                <th>Duration</th>
+                <th>Frames</th>
+                <th>Severity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {longest.map((b) => {
+                const mins = Math.round(b.minDurationS / 60);
+                const { label } = blockageTier(mins);
+                return (
+                  <tr key={b.id}>
+                    <td>{fmtDateTime(b.firstSeenAt)}</td>
+                    <td className={mins >= 20 ? "train" : undefined}>
+                      {formatDurationRange(
+                        b.minDurationS,
+                        b.maxDurationS,
+                        b.observationCount,
+                      )}
+                    </td>
+                    <td className="dim">{b.observationCount}</td>
+                    <td className="dim">{label ?? "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <h2>Detector health</h2>
       <p className="note">

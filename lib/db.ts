@@ -67,6 +67,15 @@ export async function getRecentBlockages(limit = 25) {
     .limit(limit);
 }
 
+/** Worst blockages on record, longest confirmed span first. */
+export async function getLongestBlockages(limit = 10) {
+  return db
+    .select()
+    .from(blockages)
+    .orderBy(desc(blockages.minDurationS))
+    .limit(limit);
+}
+
 export async function countObservations(): Promise<number> {
   const [row] = await db.select({ n: count() }).from(observations);
   return Number(row?.n ?? 0);
