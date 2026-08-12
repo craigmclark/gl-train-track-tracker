@@ -267,6 +267,62 @@ html[data-status="train"] .status-card {
   display: block;
 }
 
+/* --- live look: 2x2 grid of the four approaches ------------------------- */
+.livelook {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.livelook-cell {
+  position: relative;
+  display: block;
+  border: var(--border) solid var(--rule);
+  background: var(--panel);
+  line-height: 0;
+  text-decoration: none;
+}
+.livelook-cell img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+.livelook-label {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  line-height: 1.3;
+}
+.livelook-label em {
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+}
+.livelook-cell:hover .livelook-label {
+  background: var(--signal);
+}
+.livelook-cell:hover .livelook-label em {
+  color: var(--bone);
+}
+@media (max-width: 560px) {
+  .livelook {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- sighting cards -----------------------------------------------------
    The recent-trains log, with the captured frame alongside each entry so the
    verdict can be judged against the evidence rather than taken on trust. */
@@ -282,15 +338,103 @@ html[data-status="train"] .status-card {
   background: var(--panel);
   overflow: hidden;
 }
-.sighting-thumb {
-  width: 210px;
+.sighting-thumb-link {
+  position: relative;
+  display: block;
   flex: none;
+  width: 210px;
+  border-right: var(--border) solid var(--rule);
+  line-height: 0;
+}
+.sighting-thumb {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
-  border-right: var(--border) solid var(--rule);
   background: color-mix(in srgb, var(--fg) 10%, transparent);
 }
+/* Affordance that the frame opens. Kept subtle until hover so the log still
+   reads as data rather than a gallery. */
+.sighting-zoom {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  line-height: 1.2;
+  opacity: 0.8;
+}
+.sighting-thumb-link:hover .sighting-zoom {
+  opacity: 1;
+  background: var(--signal);
+}
+
+/* --- lightbox (CSS :target, no client JS) ------------------------------- */
+.lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.lightbox:target {
+  display: flex;
+}
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 10, 9, 0.9);
+}
+.lightbox-inner {
+  position: relative;
+  max-width: min(1080px, 96vw);
+  max-height: 92vh;
+  border: var(--border) solid var(--bone);
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+.lightbox-inner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(92vh - 44px);
+  object-fit: contain;
+}
+.lightbox-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 11.5px;
+  border-top: var(--border) solid var(--bone);
+}
+.lightbox-close {
+  color: var(--bone);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.lightbox-close:hover {
+  color: var(--amber);
+}
+/* No link wrapper on the expired state — nothing to enlarge. */
 .sighting-thumb.empty {
+  width: 210px;
+  flex: none;
+  border-right: var(--border) solid var(--rule);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -325,7 +469,8 @@ html[data-status="train"] .status-card {
   .sighting {
     flex-direction: column;
   }
-  .sighting-thumb {
+  .sighting-thumb-link,
+  .sighting-thumb.empty {
     width: 100%;
     border-right: none;
     border-bottom: var(--border) solid var(--rule);
@@ -456,9 +601,8 @@ td.dim {
 
 /* --- footer ------------------------------------------------------------ */
 .site-footer {
-  margin: 50px auto 34px;
-  padding-top: 18px;
-  border-top: var(--border) solid var(--rule);
+  /* Sits below the closing gate arm, which already acts as the divider. */
+  margin: 26px auto 40px;
   font-size: 11.5px;
   opacity: 0.78;
 }

@@ -12,6 +12,18 @@ import { getSiteStatus } from "@/lib/status";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+/**
+ * Grid order puts the crossing view first, then reads clockwise. The other
+ * three legs are context — they show whether traffic is backed up on the
+ * approaches, which is often the first visible sign of a blockage.
+ */
+const LIVE_LEGS = [
+  { dir: "west", label: "Looking west", note: "The crossing" },
+  { dir: "north", label: "Looking north", note: null },
+  { dir: "east", label: "Looking east", note: null },
+  { dir: "south", label: "Looking south", note: null },
+] as const;
+
 export default async function LivePage() {
   const [status, blockages, open] = await Promise.all([
     getSiteStatus(),
@@ -23,6 +35,10 @@ export default async function LivePage() {
 
   const elapsed = open ? openBlockageMinutes(open) : null;
   const tier = elapsed ? blockageTier(elapsed.confirmed) : null;
+
+  // Matches the 2-minute cache on /api/leg, so the grid refreshes on the same
+  // cadence the proxy is willing to serve rather than hammering it per render.
+  const legBust = Math.floor(Date.now() / 120_000);
 
   return (
     <>
@@ -116,20 +132,79 @@ export default async function LivePage() {
         Read this as what the camera happened to catch, not as a complete record.
       </div>
 
-      <h2>Recent sightings</h2>
+      <h2 id="livelook">Live look</h2>
+      <p className="note" style={{ marginTop: 0, marginBottom: 14 }}>
+        All four approaches, straight from the camera. Only the west leg — the
+        one facing the crossing — is recorded and classified; the other three
+        are views, not data.
+      </p>
+      <div className="livelook">
+        {LIVE_LEGS.map((leg) => (
+          <a
+            className="livelook-cell"
+            href={`#leg-${leg.dir}`}
+            key={leg.dir}
+            aria-label={`Enlarge the ${leg.label} view`}
+          >
+            <img
+              src={`/api/leg/${leg.dir}?t=${legBust}`}
+              alt={`IL 83 at IL 120, ${leg.label}`}
+              loading="lazy"
+            />
+            <span className="livelook-label">
+              {leg.label}
+              {leg.note && <em>{leg.note}</em>}
+            </span>
+          </a>
+        ))}
+      </div>
+
+      {LIVE_LEGS.map((leg) => (
+        <div className="lightbox" id={`leg-${leg.dir}`} key={`lb-${leg.dir}`}>
+          <a
+            className="lightbox-backdrop"
+            href="#livelook"
+            aria-label="Close enlarged image"
+          />
+          <div className="lightbox-inner">
+            <img
+              src={`/api/leg/${leg.dir}?t=${legBust}`}
+              alt={`IL 83 at IL 120, ${leg.label}`}
+            />
+            <div className="lightbox-bar">
+              <span>
+                IL 83 @ IL 120 · {leg.label}
+                {leg.note ? ` · ${leg.note}` : ""}
+              </span>
+              <a href="#livelook" className="lightbox-close">
+                Close ✕
+              </a>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <h2 id="sightings-heading">Recent sightings</h2>
       {blockages.length === 0 ? (
         <p className="note">No trains caught on camera yet.</p>
       ) : (
-        <div className="sightings">
+        <div className="sightings" id="sightings">
           {blockages.map((b) => (
             <div className="sighting" key={b.id}>
               {b.imageUrl ? (
-                <img
-                  className="sighting-thumb"
-                  src={b.imageUrl}
-                  alt={`Train on the crossing at ${fmtDateTime(b.firstSeenAt)}`}
-                  loading="lazy"
-                />
+                <a
+                  className="sighting-thumb-link"
+                  href={`#shot-${b.id}`}
+                  aria-label={`Enlarge the frame from ${fmtDateTime(b.firstSeenAt)}`}
+                >
+                  <img
+                    className="sighting-thumb"
+                    src={b.imageUrl}
+                    alt={`Train on the crossing at ${fmtDateTime(b.firstSeenAt)}`}
+                    loading="lazy"
+                  />
+                  <span className="sighting-zoom">Enlarge</span>
+                </a>
               ) : (
                 <div className="sighting-thumb empty">
                   Image expired
@@ -157,6 +232,41 @@ export default async function LivePage() {
           ))}
         </div>
       )}
+
+      {/* Lightboxes live outside the cards and are driven by :target, so this
+          stays a server component with no client JavaScript. Closing links back
+          to #sightings rather than a bare "#" so the page does not jump to the
+          top when the overlay is dismissed. */}
+      {blockages
+        .filter((b) => b.imageUrl)
+        .map((b) => (
+          <div className="lightbox" id={`shot-${b.id}`} key={`lb-${b.id}`}>
+            <a
+              className="lightbox-backdrop"
+              href="#sightings"
+              aria-label="Close enlarged image"
+            />
+            <div className="lightbox-inner">
+              <img
+                src={b.imageUrl!}
+                alt={`Train on the crossing at ${fmtDateTime(b.firstSeenAt)}`}
+              />
+              <div className="lightbox-bar">
+                <span>
+                  {fmtDateTime(b.firstSeenAt)} ·{" "}
+                  {formatDurationRange(
+                    b.minDurationS,
+                    b.maxDurationS,
+                    b.observationCount,
+                  )}
+                </span>
+                <a href="#sightings" className="lightbox-close">
+                  Close ✕
+                </a>
+              </div>
+            </div>
+          </div>
+        ))}
     </>
   );
 }

@@ -1,15 +1,37 @@
 /** Static configuration for the Grayslake IL 83 / IL 120 crossing monitor. */
 
+const SNAPSHOT_BASE = "https://www.lakecountypassage.com/snapshots";
+
 /**
- * Direct Lake County PASSAGE snapshot for the west leg of IL 83 @ IL 120.
+ * The four approaches this PTZ camera writes, each to its own file.
+ *
+ * Keys are the only values accepted from a URL path — the lookup is a
+ * whitelist, not string interpolation, so a request cannot be steered at an
+ * arbitrary host.
+ */
+export const CAMERA_LEGS = {
+  west: "West_Leg",
+  north: "North_Leg",
+  east: "East_Leg",
+  south: "South_Leg",
+} as const;
+
+export type CameraLeg = keyof typeof CAMERA_LEGS;
+
+export function legSnapshotUrl(leg: CameraLeg): string {
+  return `${SNAPSHOT_BASE}/IL_83_@_IL_120_cctv_${CAMERA_LEGS[leg]}.jpg`;
+}
+
+/**
+ * The leg the whole detection pipeline runs on: looking west, down IL 120,
+ * with the grade crossing ~100 ft ahead.
  *
  * Use this rather than the WeatherBug/TrafficLand mirror
  * (ie.trafficland.com/v2.0/441577/huge?...&pubtoken=...): the PASSAGE original is
  * 720x480 where the mirror is a rescaled 704x469, it needs no publisher token,
  * and it serves Last-Modified so we can poll conditionally.
  */
-export const CAMERA_URL =
-  "https://www.lakecountypassage.com/snapshots/IL_83_@_IL_120_cctv_West_Leg.jpg";
+export const CAMERA_URL = legSnapshotUrl("west");
 
 /** Native frame size of the direct PASSAGE feed. */
 export const FRAME_WIDTH = 720;

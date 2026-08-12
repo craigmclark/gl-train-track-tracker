@@ -96,6 +96,10 @@ export default async function RootLayout({
 
         <main className="wrap">{children}</main>
 
+        {/* The gate arm closes the content, then the colophon sits below it —
+            the stripe is the divider, so the footer needs no rule of its own. */}
+        <div className="gatearm" aria-hidden="true" />
+
         <footer className="wrap site-footer">
           <p>
             <strong>IL 83 @ IL 120 · GRAYSLAKE, IL · CN WAUKESHA SUB</strong>
@@ -106,8 +110,6 @@ export default async function RootLayout({
             rely on it to decide whether it is safe to cross railroad tracks.
           </p>
         </footer>
-
-        <div className="gatearm" aria-hidden="true" />
       </body>
     </html>
   );
