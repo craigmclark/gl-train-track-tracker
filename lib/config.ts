@@ -125,8 +125,40 @@ export const DRIFT_THRESHOLD = 20.0;
 /** Consecutive train observations within this gap belong to the same blockage. */
 export const BLOCKAGE_MAX_GAP_MS = 15 * 60 * 1000;
 
+/**
+ * Minimum model confidence before a frame is recorded as a train.
+ *
+ * Derived from the first 12 positives, where the separation was total:
+ *
+ *   6 real trains ......... confidence 0.95, notes naming visible rolling stock
+ *                           ("dark tanker cars", "locomotive and railcars")
+ *   6 false positives ..... confidence 0.60-0.75, notes inferring from lights
+ *                           ("red lights suggest", "indicating train passage")
+ *
+ * Every false positive was a red traffic signal blooming across wet pavement at
+ * night. The model hedged and lowered its own confidence each time, so a gate at
+ * 0.85 removes all six while leaving a 0.10 margin under every true positive.
+ *
+ * This is a safety net, not the fix — the prompt in lib/vlm.ts is. The raw model
+ * answer is always preserved in observations.raw_vlm, so tightening or loosening
+ * this never destroys information.
+ */
+export const TRAIN_CONFIDENCE_MIN = 0.85;
+
 /** Keep JPEGs for confirmed-train observations this long, then purge. */
 export const IMAGE_RETENTION_DAYS = 3;
+
+/**
+ * Small grayscale ROI crop kept for every classified frame, forever, as a
+ * training set for a local model later.
+ *
+ * The evidence images above are deliberately short-lived, but a classifier needs
+ * both classes retained — and the night false positives are the most valuable
+ * examples of all, since they are exactly the hard negatives that a naive model
+ * would get wrong. At this size a frame costs ~4 KB, so a year of collection is
+ * a few hundred megabytes.
+ */
+export const TRAINING_CROP = { width: 240, height: 60 } as const;
 
 /** Fallback sampling interval before we have enough poll data to measure one. */
 export const ASSUMED_SAMPLING_INTERVAL_S = 390; // ~6.5 min, midpoint of measured 5-8

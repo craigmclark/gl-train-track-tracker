@@ -46,6 +46,13 @@ export const observations = pgTable(
     imageUrl: text("image_url"),
     imageSha256: text("image_sha256").notNull(),
 
+    /**
+     * Small grayscale ROI crop kept indefinitely as training data. Unlike
+     * image_url this is never purged — a local classifier needs both classes,
+     * and the night false positives are the most valuable examples in the set.
+     */
+    trainingCropUrl: text("training_crop_url"),
+
     /** CV pre-filter score (mean abs diff + edge delta vs reference). */
     cvScore: real("cv_score"),
     /** Did the CV score clear the escalation threshold? */

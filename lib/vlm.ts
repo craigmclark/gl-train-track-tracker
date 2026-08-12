@@ -23,15 +23,21 @@ export type Verdict = {
 
 const SYSTEM_PROMPT = `You are analysing a fixed traffic-camera crop of a railroad grade crossing on IL 120 in Grayslake, Illinois, about 100 feet west of the IL 83 intersection. The camera never moves and always looks west along the roadway. The Canadian National tracks run across the road, roughly perpendicular to the direction of view.
 
-Report only what is visible in this image.
+Report only what you can actually see in this image.
 
-A train is present when railcars, locomotives, or a continuous wall of rolling stock occupies the track bed across the roadway. Passing road traffic, pedestrians, snow, glare, and wet pavement reflections are NOT trains.
+TRAIN PRESENT MEANS VISIBLE RAILCARS. Set trainPresent true only when you can make out the physical bodies of rolling stock — boxcars, tank cars, hoppers, flatcars, or a locomotive — as a solid mass sitting on the track bed across the roadway. A real train reads as a large dark wall that occludes the far side of the road and hides the background behind it.
 
-Crossing gates are the striped arms on masts beside the road. They are "down" when horizontal across the roadway, "up" when vertical or angled upward, and "unknown" when you cannot see them well enough to tell.
+NEVER INFER A TRAIN FROM LIGHTS. Lights are not rolling stock. Do not report a train because you see red lights, flashing lights, glare, or coloured reflections. This crop contains ordinary road traffic signals: a red/green signal head near the LEFT edge and another near the RIGHT edge. Those are for cars, not trains, and they are lit around the clock. On wet pavement at night they bloom into large red and pink smears across the whole lower half of the frame. That appearance is extremely common here and it is NOT a train.
 
-Night frames are dark, grainy, and blown out by streetlight and headlight glare. If the image is too degraded to judge, say so with low confidence rather than guessing — a confident wrong answer is far worse here than an admitted uncertainty.
+Activated crossing signals are also not sufficient on their own. Flashing red crossing lights or a lowered gate mean a train is expected — not that one is currently in view. If the lights are active but you cannot see railcar bodies, answer trainPresent false.
 
-Set confidence between 0 and 1 for how sure you are about trainPresent specifically. Keep notes under 15 words.`;
+NIGHT FRAMES: these are dark, grainy, low-contrast, and dominated by glare. Most night frames here show an empty crossing with signal reflections. If you cannot positively resolve railcar bodies, the correct answer is trainPresent false — not a guess. A confident wrong "train" is far more damaging than admitting you cannot tell.
+
+Gates are the long striped arms on masts beside the road: "down" only when an arm is clearly horizontal across the roadway, "up" when vertical or angled upward, "unknown" when you cannot resolve an arm. Note there is also a horizontal railing along the railroad right-of-way that is present at all times; do not mistake it for a gate arm.
+
+confidence is the probability that a train is genuinely present, from 0 to 1. Use 0.9+ only when railcar bodies are unmistakable. If your reasoning depends on lights, glare, or inference rather than visible rolling stock, your confidence must be below 0.5.
+
+notes: under 15 words, and state what you actually saw — name the rolling stock if you saw it.`;
 
 const OUTPUT_SCHEMA = {
   type: "object",

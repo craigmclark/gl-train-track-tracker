@@ -7,6 +7,7 @@ import {
   CV_ESCALATE_THRESHOLD,
   DRIFT_THRESHOLD,
   LATEST_BLOB_PATH,
+  TRAIN_CONFIDENCE_MIN,
   VLM_AUDIT_EVERY_N,
 } from "@/lib/config";
 import { recomputeCurrentBlockage } from "@/lib/blockage";
@@ -19,7 +20,12 @@ import {
 } from "@/lib/db";
 import { fetchSnapshot, toHttpDate } from "@/lib/passage";
 import { purgeExpiredImages } from "@/lib/retention";
-import { analyzeFrame, cropRoiJpeg, loadReference } from "@/lib/roi";
+import {
+  analyzeFrame,
+  cropRoiJpeg,
+  loadReference,
+  trainingCropJpeg,
+} from "@/lib/roi";
 import { isDaylight } from "@/lib/sun";
 import { classifyCrop, type VlmReason, type Verdict } from "@/lib/vlm";
 
@@ -118,16 +124,47 @@ async function ingest() {
     }
   }
 
+  // Confidence gate. Night false positives — red traffic signals blooming on wet
+  // pavement — came back at 0.60-0.75 while every genuine train was 0.95, so a
+  // low-confidence "train" is downgraded to clear here. The model's raw answer is
+  // still written to raw_vlm, so this is reversible and costs no information.
+  const trainConfirmed =
+    (verdict?.trainPresent ?? false) &&
+    (verdict?.confidence ?? 0) >= TRAIN_CONFIDENCE_MIN;
+
+  const lowConfidenceTrain = (verdict?.trainPresent ?? false) && !trainConfirmed;
+  if (lowConfidenceTrain) {
+    console.warn(
+      `low-confidence train rejected at ${capturedAt.toISOString()}:`,
+      verdict?.confidence,
+      verdict?.notes,
+    );
+  }
+
   // Image storage is best-effort. The observation is the data; the picture is
   // supporting evidence, so a Blob outage (or a store that was never created)
   // must not cost us the reading. Failures degrade to imageUrl = null.
   let imageUrl: string | null = null;
+  let trainingCropUrl: string | null = null;
   let blobError: string | null = null;
 
   try {
+    // Training archive: every classified frame, both classes, kept forever at
+    // ~4 KB each. The evidence images below are short-lived by design, but a
+    // local classifier needs negatives too — and the night false positives are
+    // the most valuable examples in the set.
+    if (verdict !== null) {
+      const crop = await put(
+        `training/${capturedAt.toISOString()}.jpg`,
+        await trainingCropJpeg(buffer),
+        { access: "public", contentType: "image/jpeg" },
+      );
+      trainingCropUrl = crop.url;
+    }
+
     // Images are evidence for confirmed crossings only. Everything else is
     // discarded here and never reaches storage.
-    if (verdict?.trainPresent) {
+    if (trainConfirmed) {
       const blob = await put(`trains/${capturedAt.toISOString()}.jpg`, buffer, {
         access: "public",
         contentType: "image/jpeg",
@@ -167,13 +204,14 @@ async function ingest() {
     .values({
       capturedAt,
       imageUrl,
+      trainingCropUrl,
       imageSha256: sha256,
       cvScore,
       sceneDriftScore: driftScore,
       cvTriggered,
       vlmCalled: verdict !== null,
       vlmReason: verdict !== null ? reason : null,
-      trainPresent: verdict?.trainPresent ?? false,
+      trainPresent: trainConfirmed,
       gates: verdict?.gates ?? "unknown",
       confidence: verdict?.confidence ?? null,
       isDaylight: daylight,
@@ -198,7 +236,9 @@ async function ingest() {
     viewDrift,
     vlmCalled: verdict !== null,
     vlmReason: verdict !== null ? reason : null,
-    trainPresent: verdict?.trainPresent ?? false,
+    trainPresent: trainConfirmed,
+    rawTrainPresent: verdict?.trainPresent ?? false,
+    lowConfidenceRejected: lowConfidenceTrain,
     gates: verdict?.gates ?? "unknown",
     confidence: verdict?.confidence ?? null,
     imageStored: imageUrl !== null,

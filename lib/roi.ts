@@ -3,7 +3,7 @@ import path from "node:path";
 
 import sharp from "sharp";
 
-import { FRAME_HEIGHT, FRAME_WIDTH, ROI } from "./config";
+import { FRAME_HEIGHT, FRAME_WIDTH, ROI, TRAINING_CROP } from "./config";
 
 /** Working resolution for differencing. Small enough to be cheap, big enough to
  *  keep a train-sized object obvious. */
@@ -153,6 +153,32 @@ export async function cropRoiJpeg(frame: Buffer): Promise<Buffer> {
     .resize(ROI.width * 2, ROI.height * 2, { kernel: "lanczos3" })
     .normalise() // stretch contrast; night frames are otherwise near-black
     .jpeg({ quality: 88 })
+    .toBuffer();
+}
+
+/**
+ * Tiny grayscale ROI crop for the training archive.
+ *
+ * Grayscale on purpose: colour is what fooled the vision model at night (red
+ * signals reading as train activity), and a local classifier should be learning
+ * the shape of a railcar wall occluding the roadway, not the presence of red
+ * pixels.
+ */
+export async function trainingCropJpeg(frame: Buffer): Promise<Buffer> {
+  const extracted = await sharp(frame)
+    .resize(FRAME_WIDTH, FRAME_HEIGHT, { fit: "fill" })
+    .extract({
+      left: ROI.left,
+      top: ROI.top,
+      width: ROI.width,
+      height: ROI.height,
+    })
+    .toBuffer();
+
+  return sharp(extracted)
+    .resize(TRAINING_CROP.width, TRAINING_CROP.height, { fit: "fill" })
+    .grayscale()
+    .jpeg({ quality: 80 })
     .toBuffer();
 }
 
