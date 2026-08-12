@@ -601,8 +601,9 @@ td.dim {
 
 /* --- footer ------------------------------------------------------------ */
 .site-footer {
-  /* Sits below the closing gate arm, which already acts as the divider. */
-  margin: 26px auto 40px;
+  /* Sits below the closing gate arm, which already acts as the divider — but
+     needs real breathing room so the colophon does not crowd the stripe. */
+  margin: 46px auto 44px;
   font-size: 11.5px;
   opacity: 0.78;
 }
