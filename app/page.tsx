@@ -5,7 +5,7 @@ import {
   openBlockageMinutes,
 } from "@/lib/blockage";
 import { ROI_CALIBRATED } from "@/lib/config";
-import { getRecentBlockages } from "@/lib/db";
+import { getRecentBlockagesWithImages } from "@/lib/db";
 import { fmtAgo, fmtDateTime, fmtInterval, fmtTime } from "@/lib/format";
 import { getSiteStatus } from "@/lib/status";
 
@@ -15,7 +15,7 @@ export const revalidate = 0;
 export default async function LivePage() {
   const [status, blockages, open] = await Promise.all([
     getSiteStatus(),
-    getRecentBlockages(10),
+    getRecentBlockagesWithImages(10),
     getOpenBlockage(),
   ]);
 
@@ -120,33 +120,41 @@ export default async function LivePage() {
       {blockages.length === 0 ? (
         <p className="note">No trains caught on camera yet.</p>
       ) : (
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>First seen</th>
-                <th>Last seen</th>
-                <th>Frames</th>
-                <th>Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {blockages.map((b) => (
-                <tr key={b.id}>
-                  <td>{fmtDateTime(b.firstSeenAt)}</td>
-                  <td>{fmtDateTime(b.lastSeenAt)}</td>
-                  <td className="dim">{b.observationCount}</td>
-                  <td>
-                    {formatDurationRange(
-                      b.minDurationS,
-                      b.maxDurationS,
-                      b.observationCount,
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="sightings">
+          {blockages.map((b) => (
+            <div className="sighting" key={b.id}>
+              {b.imageUrl ? (
+                <img
+                  className="sighting-thumb"
+                  src={b.imageUrl}
+                  alt={`Train on the crossing at ${fmtDateTime(b.firstSeenAt)}`}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="sighting-thumb empty">
+                  Image expired
+                  <br />
+                  (kept 3 days)
+                </div>
+              )}
+              <div className="sighting-body">
+                <span className="sighting-duration">
+                  {formatDurationRange(
+                    b.minDurationS,
+                    b.maxDurationS,
+                    b.observationCount,
+                  )}
+                </span>
+                <span className="sighting-meta">
+                  {fmtDateTime(b.firstSeenAt)} → {fmtTime(b.lastSeenAt)}
+                </span>
+                <span className="sighting-meta">
+                  Seen in {b.observationCount}{" "}
+                  {b.observationCount === 1 ? "frame" : "frames"}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </>

@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { ASSUMED_SAMPLING_INTERVAL_S } from "./config";
 import { getLatestObservation, getMedianSamplingIntervalS } from "./db";
 import type { Observation } from "./schema";
@@ -28,7 +30,7 @@ const FALLBACK: SiteStatus = {
  * transient Postgres blip should degrade the site to "No signal" rather than
  * throw and take down history and stats along with it.
  */
-export async function getSiteStatus(): Promise<SiteStatus> {
+export const getSiteStatus = cache(async (): Promise<SiteStatus> => {
   try {
     const [latest, interval] = await Promise.all([
       getLatestObservation(),
@@ -59,4 +61,7 @@ export async function getSiteStatus(): Promise<SiteStatus> {
     console.error("status lookup failed:", err);
     return FALLBACK;
   }
-}
+  // Wrapped in React cache(): the layout, generateMetadata, and the page all
+  // ask for status during one render, and this collapses that to a single
+  // round trip per request.
+});

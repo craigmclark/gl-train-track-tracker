@@ -19,11 +19,21 @@ const mono = Space_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "GL TRAIN TRACK TRACKER",
-  description:
-    "Sampled observations of the CN Waukesha Sub grade crossing on IL 120 in Grayslake, Illinois.",
-};
+/**
+ * The favicon URL carries the status token so the tab icon recolours with the
+ * page. Without the query change, browsers would cache the first icon forever.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { token } = await getSiteStatus();
+  return {
+    title: "GL TRAIN TRACK TRACKER",
+    description:
+      "Sampled observations of the CN Waukesha Sub grade crossing on IL 120 in Grayslake, Illinois.",
+    icons: {
+      icon: [{ url: `/api/favicon?s=${token}`, type: "image/svg+xml" }],
+    },
+  };
+}
 
 /** The crossbuck, drawn rather than fetched. */
 function Crossbuck() {

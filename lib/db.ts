@@ -67,6 +67,46 @@ export async function getRecentBlockages(limit = 25) {
     .limit(limit);
 }
 
+/**
+ * Recent blockages, each with a stored frame from somewhere inside the run.
+ *
+ * The image lives on the observation, not the blockage, so this picks the first
+ * observation in the run that still has one. Most will be null: images are only
+ * kept for confirmed trains, and only for three days.
+ */
+export async function getRecentBlockagesWithImages(limit = 10) {
+  const rows = await sqlClient`
+    SELECT
+      b.id,
+      b.first_seen_at,
+      b.last_seen_at,
+      b.observation_count,
+      b.min_duration_s,
+      b.max_duration_s,
+      (
+        SELECT o.image_url
+        FROM observations o
+        WHERE o.id BETWEEN b.first_observation_id AND b.last_observation_id
+          AND o.image_url IS NOT NULL
+        ORDER BY o.captured_at
+        LIMIT 1
+      ) AS image_url
+    FROM blockages b
+    ORDER BY b.first_seen_at DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((r) => ({
+    id: Number(r.id),
+    firstSeenAt: new Date(r.first_seen_at as string),
+    lastSeenAt: new Date(r.last_seen_at as string),
+    observationCount: Number(r.observation_count),
+    minDurationS: Number(r.min_duration_s),
+    maxDurationS: Number(r.max_duration_s),
+    imageUrl: (r.image_url as string | null) ?? null,
+  }));
+}
+
 /** Worst blockages on record, longest confirmed span first. */
 export async function getLongestBlockages(limit = 10) {
   return db

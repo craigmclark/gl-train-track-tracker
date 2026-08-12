@@ -20,7 +20,6 @@
   --stripe-b: var(--bone);
 
   --border: 3px;
-  --shadow: 6px 6px 0 var(--ink);
 }
 
 /* --- crossing clear: bone + green ------------------------------------- */
@@ -40,7 +39,6 @@ html[data-status="train"] {
   --accent: var(--amber);
   --panel: #b81f14;
   --rule: var(--bone);
-  --shadow: 6px 6px 0 #6d0f08;
   --stripe-a: var(--amber);
   --stripe-b: var(--signal);
 }
@@ -62,7 +60,6 @@ html[data-status="nodata"] {
   --accent: var(--amber);
   --panel: #211d19;
   --rule: #e8e2d6;
-  --shadow: 6px 6px 0 #000;
   --stripe-a: #4a423a;
   --stripe-b: #14110f;
 }
@@ -169,7 +166,6 @@ nav a:hover {
 .status-card {
   border: var(--border) solid var(--rule);
   background: var(--panel);
-  box-shadow: var(--shadow);
   padding: 26px;
   margin: 30px 0 24px;
 }
@@ -179,10 +175,10 @@ html[data-status="train"] .status-card {
 @keyframes alarm {
   0%,
   100% {
-    box-shadow: 6px 6px 0 #6d0f08;
+    border-color: var(--rule);
   }
   50% {
-    box-shadow: 6px 6px 0 var(--amber);
+    border-color: var(--amber);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -253,7 +249,6 @@ html[data-status="train"] .status-card {
 .elapsed.tier-long,
 .elapsed.tier-extended {
   background: var(--bone);
-  box-shadow: 6px 6px 0 var(--ink);
 }
 .elapsed.tier-long .elapsed-tag,
 .elapsed.tier-extended .elapsed-tag {
@@ -272,6 +267,71 @@ html[data-status="train"] .status-card {
   display: block;
 }
 
+/* --- sighting cards -----------------------------------------------------
+   The recent-trains log, with the captured frame alongside each entry so the
+   verdict can be judged against the evidence rather than taken on trust. */
+.sightings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sighting {
+  display: flex;
+  align-items: stretch;
+  border: var(--border) solid var(--rule);
+  background: var(--panel);
+  overflow: hidden;
+}
+.sighting-thumb {
+  width: 210px;
+  flex: none;
+  object-fit: cover;
+  display: block;
+  border-right: var(--border) solid var(--rule);
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+}
+.sighting-thumb.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  min-height: 118px;
+}
+.sighting-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.sighting-duration {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(16px, 3vw, 22px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.sighting-meta {
+  font-size: 12px;
+  opacity: 0.72;
+}
+@media (max-width: 620px) {
+  .sighting {
+    flex-direction: column;
+  }
+  .sighting-thumb {
+    width: 100%;
+    border-right: none;
+    border-bottom: var(--border) solid var(--rule);
+  }
+}
+
 /* --- notices ----------------------------------------------------------- */
 .notice {
   border: var(--border) solid var(--rule);
@@ -283,7 +343,6 @@ html[data-status="train"] .status-card {
 .notice.warn {
   background: var(--amber);
   color: var(--ink);
-  box-shadow: var(--shadow);
 }
 .notice strong {
   font-weight: 700;
@@ -305,7 +364,6 @@ h2 {
   overflow-x: auto;
   border: var(--border) solid var(--rule);
   background: var(--panel);
-  box-shadow: var(--shadow);
 }
 table {
   border-collapse: collapse;
@@ -351,7 +409,6 @@ td.dim {
 .metric {
   border: var(--border) solid var(--rule);
   background: var(--panel);
-  box-shadow: var(--shadow);
   padding: 16px;
 }
 .metric .value {
