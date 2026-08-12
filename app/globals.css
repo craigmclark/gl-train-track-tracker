@@ -89,6 +89,12 @@ body {
   padding: 0 22px;
 }
 
+/* The closing gate arm is a full-bleed divider, so the last card in the page
+   would otherwise butt straight into it. */
+main.wrap {
+  padding-bottom: 44px;
+}
+
 /* --- gate-arm hazard stripes ------------------------------------------ */
 .gatearm {
   height: 18px;
