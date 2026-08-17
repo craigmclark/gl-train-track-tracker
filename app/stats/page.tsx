@@ -31,6 +31,10 @@ export default async function StatsPage() {
 
   const samplingS = interval ?? ASSUMED_SAMPLING_INTERVAL_S;
 
+  // Only multi-frame runs have a duration worth ranking; a single-frame sighting
+  // records that a train was there, not how long for.
+  const multiFrame = longest.filter((b) => b.observationCount > 1);
+
   // A train is only captured if a frame lands while it is on the crossing, so
   // the catch rate is just its occupancy time over the sampling interval.
   const catchMetra = Math.min(1, METRA_GATE_DOWN_S / samplingS);
@@ -142,7 +146,7 @@ export default async function StatsPage() {
         </table>
       </div>
 
-      <h2>Longest blockages recorded</h2>
+      <h2>Longest blockages</h2>
       <p className="note">
         These are the events this camera <em>can</em> measure well. A normal
         train is gone between frames, but a stopped or slow-moving one spans
@@ -151,6 +155,43 @@ export default async function StatsPage() {
         the high number adds one sampling interval at each end for the time
         before the first frame and after the last.
       </p>
+
+      {/* The record board only means something once a blockage has spanned more
+          than one frame. Featuring a single-frame sighting as "the longest" would
+          dress up an unknown as a measurement. */}
+      {multiFrame.length > 0 ? (
+        (() => {
+          const top = multiFrame[0];
+          const mins = Math.round(top.minDurationS / 60);
+          const { label } = blockageTier(mins);
+          return (
+            <div className="record">
+              <div className="record-kicker">Longest blockage on record</div>
+              <div className="record-value">
+                {Math.round(top.minDurationS / 60)}–
+                {Math.round(top.maxDurationS / 60)} min
+              </div>
+              <div className="record-meta">
+                {fmtDateTime(top.firstSeenAt)} · held across{" "}
+                {top.observationCount} consecutive frames, which is why it can be
+                timed at all.
+              </div>
+              {label && <span className="record-tag">{label}</span>}
+            </div>
+          );
+        })()
+      ) : (
+        <div className="record empty">
+          <div className="record-kicker">Longest blockage on record</div>
+          <div className="record-value">Nothing measurable yet</div>
+          <div className="record-meta">
+            Every train caught so far appeared in a single frame and was gone by
+            the next one, so none can be timed. A duration only becomes
+            measurable when a train sits on the crossing long enough to span two
+            frames — roughly {Math.ceil(samplingS / 60)} minutes or more.
+          </div>
+        </div>
+      )}
       {longest.length === 0 ? (
         <p className="note">No blockages recorded yet.</p>
       ) : (

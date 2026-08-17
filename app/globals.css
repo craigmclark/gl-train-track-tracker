@@ -19,7 +19,7 @@
   --stripe-a: var(--signal);
   --stripe-b: var(--bone);
 
-  --border: 3px;
+  --border: 5px;
 }
 
 /* --- crossing clear: bone + green ------------------------------------- */
@@ -154,18 +154,16 @@ nav {
 nav a {
   font-weight: 700;
   font-size: 12px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-decoration: none;
-  color: var(--fg);
+  color: var(--bg);
+  background: var(--fg);
   border: var(--border) solid var(--rule);
-  padding: 6px 12px;
-  background: var(--panel);
-  transition: transform 0.08s ease;
+  padding: 8px 14px;
 }
 nav a:hover {
   background: var(--accent);
   color: var(--bg);
-  transform: translate(-2px, -2px);
 }
 
 /* --- status hero ------------------------------------------------------- */
@@ -198,9 +196,9 @@ html[data-status="train"] .status-card {
 
 .verdict {
   font-family: var(--font-display), Impact, sans-serif;
-  font-size: clamp(32px, 8vw, 68px);
-  line-height: 0.9;
-  letter-spacing: -0.03em;
+  font-size: clamp(36px, 9vw, 82px);
+  line-height: 0.84;
+  letter-spacing: -0.045em;
   text-transform: uppercase;
   margin: 0;
 }
@@ -273,18 +271,24 @@ html[data-status="train"] .status-card {
   display: block;
 }
 
-/* --- live look: 2x2 grid of the four approaches ------------------------- */
+/* --- live look: 2x2 grid of the four approaches -------------------------
+   One black slab rather than four floating cards: the container is inked, the
+   gap between cells shows that ink through as gutters, and the outer border
+   closes the frame. Reads as a single instrument panel of the intersection. */
 .livelook {
   display: grid;
+  /* Held at two columns at every width — a 2x2 of one intersection is the
+     point, and stacking it into a column loses the spatial relationship. */
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  margin-bottom: 8px;
+  gap: 5px;
+  background: var(--ink);
+  border: 5px solid var(--ink);
+  margin-bottom: 10px;
 }
 .livelook-cell {
   position: relative;
   display: block;
-  border: var(--border) solid var(--rule);
-  background: var(--panel);
+  background: var(--ink);
   line-height: 0;
   text-decoration: none;
 }
@@ -324,9 +328,64 @@ html[data-status="train"] .status-card {
   color: var(--bone);
 }
 @media (max-width: 560px) {
+  /* Grid stays 2x2; only the chrome shrinks so the labels still fit. */
   .livelook {
-    grid-template-columns: 1fr;
+    gap: 3px;
+    border-width: 3px;
   }
+  .livelook-label {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    padding: 3px 5px;
+    gap: 4px;
+  }
+}
+
+/* --- record board: the longest blockage on file ------------------------- */
+.record {
+  border: var(--border) solid var(--rule);
+  background: var(--fg);
+  color: var(--bg);
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.record-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.record-value {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(38px, 10vw, 88px);
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  margin: 10px 0 12px;
+}
+.record-meta {
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.record-tag {
+  display: inline-block;
+  background: var(--signal);
+  color: var(--bone);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  margin-top: 10px;
+}
+.record.empty {
+  background: var(--panel);
+  color: var(--fg);
+}
+.record.empty .record-value {
+  font-size: clamp(20px, 4vw, 32px);
+  line-height: 1.05;
 }
 
 /* --- sighting cards -----------------------------------------------------
@@ -502,12 +561,13 @@ html[data-status="train"] .status-card {
 /* --- headings ---------------------------------------------------------- */
 h2 {
   font-family: var(--font-display), Impact, sans-serif;
-  font-size: clamp(20px, 3.6vw, 30px);
-  letter-spacing: -0.02em;
+  font-size: clamp(22px, 4.2vw, 36px);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
   text-transform: uppercase;
-  margin: 38px 0 14px;
-  padding-bottom: 8px;
-  border-bottom: var(--border) solid var(--rule);
+  margin: 44px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 8px solid var(--rule);
 }
 
 /* --- tables ------------------------------------------------------------ */
@@ -532,8 +592,10 @@ td {
 th {
   font-weight: 700;
   font-size: 10.5px;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
+  background: var(--fg);
+  color: var(--bg);
   border-bottom: var(--border) solid var(--rule);
 }
 tbody tr:last-child td {
@@ -564,7 +626,8 @@ td.dim {
 }
 .metric .value {
   font-family: var(--font-display), Impact, sans-serif;
-  font-size: 30px;
+  font-size: 38px;
+  letter-spacing: -0.03em;
   line-height: 1;
   letter-spacing: -0.02em;
 }
