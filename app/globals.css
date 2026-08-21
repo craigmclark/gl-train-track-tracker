@@ -66,7 +66,13 @@ html[data-status="skipped"] {
   --bg: var(--amber);
   --fg: var(--ink);
   --accent: var(--signal);
-  --panel: var(--bone);
+  /* A pastel of the ground rather than bone. Against full-strength amber a
+     near-white panel glares, and the stats page is mostly panel — a heatmap,
+     four metric tiles and a table all sitting side by side. Tinting them with
+     the background keeps the boxes legible without every one of them fighting
+     the ground for attention. Cells inherit this too: the empty ones show it
+     directly, the filled ones mix --accent into it. */
+  --panel: color-mix(in srgb, var(--amber) 38%, #fff);
   --stripe-a: var(--ink);
   --stripe-b: var(--amber);
   --crossbuck: #b8760a;
