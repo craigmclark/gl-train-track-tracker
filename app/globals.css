@@ -19,6 +19,11 @@
   --stripe-a: var(--signal);
   --stripe-b: var(--bone);
 
+  /* The crossbuck reads as a tonal shade of the ground it sits on, so it
+     needs its own token: --accent also drives links and nav hovers, which
+     have to stay legible and therefore cannot go dark. */
+  --crossbuck: var(--accent);
+
   --border: 5px;
 }
 
@@ -36,6 +41,7 @@ html[data-status="clear"] {
   --rule: var(--bone);
   --stripe-a: var(--bone);
   --stripe-b: var(--rail);
+  --crossbuck: #0d4531;
 }
 
 /* --- train on the crossing: full alarm -------------------------------- */
@@ -47,6 +53,7 @@ html[data-status="train"] {
   --rule: var(--bone);
   --stripe-a: var(--amber);
   --stripe-b: var(--signal);
+  --crossbuck: #9c1810;
 }
 
 /* --- not classified this frame: amber caution ------------------------- */
@@ -62,6 +69,7 @@ html[data-status="skipped"] {
   --panel: var(--bone);
   --stripe-a: var(--ink);
   --stripe-b: var(--amber);
+  --crossbuck: #b8760a;
 }
 
 /* --- no signal: lights out -------------------------------------------- */
@@ -145,7 +153,7 @@ main.wrap {
   width: 46px;
   height: 46px;
   flex: none;
-  color: var(--accent);
+  color: var(--crossbuck);
 }
 .brand-text {
   display: flex;
