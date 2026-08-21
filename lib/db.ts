@@ -2,6 +2,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 
+import { IMAGE_RETENTION_DAYS } from "./config";
 import * as schema from "./schema";
 import { blockages, feedState, observations, pollTicks } from "./schema";
 
@@ -71,8 +72,18 @@ export async function getRecentBlockages(limit = 25) {
  * Recent blockages, each with a stored frame from somewhere inside the run.
  *
  * The image lives on the observation, not the blockage, so this picks the first
- * observation in the run that still has one. Most will be null: images are only
- * kept for confirmed trains, and only for three days.
+ * observation in the run that still has one. Some will still be null: images are
+ * only kept for confirmed trains.
+ *
+ * Scoped to the image retention window rather than just the newest N. Past that
+ * cutoff purgeExpiredImages has already deleted the JPEG and nulled image_url,
+ * so an older blockage can only ever render as a thumbless card — it takes up a
+ * slot in the grid without carrying the evidence the grid exists to show. The
+ * history and stats pages remain the complete record; this is the illustrated one.
+ *
+ * Sharing IMAGE_RETENTION_DAYS with the purge is deliberate: the window that
+ * decides an image is gone should be the same one that decides to stop showing
+ * its sighting, so the two can never drift apart.
  */
 export async function getRecentBlockagesWithImages(limit = 10) {
   const rows = await sqlClient`
@@ -92,6 +103,7 @@ export async function getRecentBlockagesWithImages(limit = 10) {
         LIMIT 1
       ) AS image_url
     FROM blockages b
+    WHERE b.last_seen_at >= NOW() - make_interval(days => ${IMAGE_RETENTION_DAYS})
     ORDER BY b.first_seen_at DESC
     LIMIT ${limit}
   `;

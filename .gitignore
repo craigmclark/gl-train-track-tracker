@@ -9,3 +9,8 @@ build/
 next-env.d.ts
 /calibration-output/
 .env*
+
+# Point-in-time database dumps taken during the Vercel account migration.
+# Kept on disk as the only copy of the pre-wipe history; not source.
+/*-backup-*.csv
+/training-archive-manifest.csv
