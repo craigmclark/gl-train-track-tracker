@@ -22,14 +22,20 @@
   --border: 5px;
 }
 
-/* --- crossing clear: bone + green ------------------------------------- */
+/* --- crossing clear: deep rail green ---------------------------------- */
+/* Built like the alarm state rather than the old paper one: saturated ground,
+   bone text, and a darker shade of the same green for panels so cards read as
+   layers instead of dissolving into a near-identical cream. Bone on rail is
+   5.7:1 and on the panel 8.2:1, both past AA. Amber is the only accent that
+   survives on this ground — rail-on-rail would vanish. */
 html[data-status="clear"] {
-  --bg: var(--bone);
-  --fg: var(--ink);
-  --accent: var(--rail);
-  --panel: #fffaf0;
-  --stripe-a: var(--rail);
-  --stripe-b: var(--bone);
+  --bg: var(--rail);
+  --fg: var(--bone);
+  --accent: var(--amber);
+  --panel: #0f4f37;
+  --rule: var(--bone);
+  --stripe-a: var(--bone);
+  --stripe-b: var(--rail);
 }
 
 /* --- train on the crossing: full alarm -------------------------------- */
@@ -44,13 +50,18 @@ html[data-status="train"] {
 }
 
 /* --- not classified this frame: amber caution ------------------------- */
+/* Full-strength amber, not a tint of it. This is the state the page sits in
+   most of the time, so it sets the tone for the whole site: signage colour at
+   the value it is actually printed at, with the panel as flat bone laid on top
+   rather than a paler wash of the same hue. Ink-on-amber hazard stripes are
+   the real gate-arm pairing and carry far more weight than amber-on-cream. */
 html[data-status="skipped"] {
-  --bg: #f2d9a0;
+  --bg: var(--amber);
   --fg: var(--ink);
-  --accent: #a35c00;
-  --panel: #fdf0d2;
-  --stripe-a: var(--amber);
-  --stripe-b: #fdf0d2;
+  --accent: var(--signal);
+  --panel: var(--bone);
+  --stripe-a: var(--ink);
+  --stripe-b: var(--amber);
 }
 
 /* --- no signal: lights out -------------------------------------------- */
